@@ -1,20 +1,721 @@
-let products = [
-    {
-        id: 1,
-        name: "TACTICAL RIFLE X-15",
-        caliber: "5.56x45mm NATO",
-        lethalRange: "600 meters",
-        price: 1899,
-        description: "Semi-automatic, 30-round capacity",
-        img: "🔫"
-    },
-    {
-        id: 2,
-        name: "SNIPER SYSTEM M-40",
-        caliber: ".308 Win",
-        lethalRange: "1200 meters",
-        price: 4200,
-        description: "Bolt action, night vision compatible",
-        img: "🎯"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>K2J Armory - Bitcoin Marketplace</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            background:#0a0a0a;
+            font-family:'Courier New',monospace;
+            color:#0f0;
+            padding:20px;
+        }
+        .container{
+            max-width:1400px;
+            margin:0 auto;
+        }
+        /* header */
+        .header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            border-bottom:2px solid #0f0;
+            padding-bottom:15px;
+            margin-bottom:30px;
+            flex-wrap:wrap;
+        }
+        .logo{
+            font-size:28px;
+            font-weight:bold;
+        }
+        .logo span{color:#ff0;}
+        .cart-icon{
+            background:#000;
+            border:1px solid #0f0;
+            padding:8px 20px;
+            border-radius:30px;
+            cursor:pointer;
+            transition:0.2s;
+        }
+        .cart-icon:hover{
+            background:#0f0;
+            color:#000;
+        }
+        /* product grid */
+        .products-grid{
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+            gap:25px;
+            margin-bottom:40px;
+        }
+        .product-card{
+            background:#111;
+            border:1px solid #0f0;
+            border-radius:10px;
+            padding:20px;
+            cursor:pointer;
+            transition:0.2s;
+        }
+        .product-card:hover{
+            transform:translateY(-5px);
+            border-color:#ff0;
+            box-shadow:0 0 15px rgba(0,255,0,0.2);
+        }
+        .product-img{
+            width:100%;
+            height:180px;
+            background:#1a1a1a;
+            border-radius:8px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            margin-bottom:15px;
+            font-size:40px;
+            border:1px solid #333;
+        }
+        .product-title{
+            font-size:18px;
+            font-weight:bold;
+            margin-bottom:8px;
+        }
+        .product-price{
+            font-size:22px;
+            color:#0f0;
+            margin-bottom:10px;
+        }
+        .product-detail{
+            font-size:12px;
+            color:#888;
+            margin-bottom:5px;
+        }
+        .add-to-cart{
+            background:#000;
+            border:1px solid #0f0;
+            color:#0f0;
+            padding:8px 15px;
+            margin-top:15px;
+            cursor:pointer;
+            width:100%;
+            text-align:center;
+            border-radius:5px;
+            transition:0.2s;
+        }
+        .add-to-cart:hover{
+            background:#0f0;
+            color:#000;
+        }
+        /* buttons */
+        button{
+            background:#000;
+            border:1px solid #0f0;
+            color:#0f0;
+            padding:10px 20px;
+            font-family:'Courier New';
+            cursor:pointer;
+            transition:0.2s;
+        }
+        button:hover{
+            background:#0f0;
+            color:#000;
+        }
+        input,textarea,select{
+            background:#000;
+            border:1px solid #0f0;
+            color:#0f0;
+            padding:10px;
+            font-family:'Courier New';
+            width:100%;
+            margin:8px 0;
+        }
+        /* cart modal */
+        .modal{
+            display:none;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background:rgba(0,0,0,0.9);
+            z-index:1000;
+            justify-content:center;
+            align-items:center;
+        }
+        .modal-content{
+            background:#0a0a0a;
+            border:2px solid #0f0;
+            border-radius:10px;
+            padding:30px;
+            max-width:500px;
+            width:90%;
+            max-height:80vh;
+            overflow-y:auto;
+        }
+        .cart-item{
+            border-bottom:1px solid #333;
+            padding:10px 0;
+            display:flex;
+            justify-content:space-between;
+        }
+        .total{
+            font-size:20px;
+            margin:15px 0;
+            padding-top:10px;
+            border-top:2px solid #0f0;
+        }
+        .checkout-btn{
+            width:100%;
+            padding:12px;
+            background:#0f0;
+            color:#000;
+            font-weight:bold;
+        }
+        /* product detail page */
+        .product-detail-page{
+            background:#0a0a0a;
+            border:1px solid #0f0;
+            border-radius:10px;
+            padding:30px;
+            margin-top:20px;
+        }
+        .back-btn{
+            margin-bottom:20px;
+            display:inline-block;
+        }
+        .btc-address{
+            background:#111;
+            padding:15px;
+            border-radius:8px;
+            margin:15px 0;
+            word-break:break-all;
+        }
+        .telegram-btn{
+            background:#0088cc;
+            border-color:#0088cc;
+            color:white;
+            margin-top:15px;
+        }
+        .telegram-btn:hover{
+            background:#00aaff;
+            color:white;
+        }
+        /* new listing form */
+        .listing-form{
+            background:#0a0a0a;
+            border:1px solid #0f0;
+            border-radius:10px;
+            padding:25px;
+            margin-top:30px;
+        }
+        .info-text{
+            font-size:11px;
+            color:#555;
+            margin-top:5px;
+        }
+        .badge{
+            font-size:9px;
+            color:#338833;
+            text-align:center;
+            margin-top:30px;
+            padding-top:15px;
+            border-top:1px solid #333;
+        }
+        .error{color:#f00;}
+        .success{color:#0f0;}
+        @media (max-width:700px){
+            .products-grid{grid-template-columns:1fr;}
+            body{padding:10px;}
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="app"></div>
+<div class="badge">[ K2J ARMORY | BITCOIN ONLY | TELEGRAM ESCROW | NO CHROME ]</div>
+
+<script>
+    // ============================================
+    // K2J ARMORY - BITCOIN MARKETPLACE
+    // All listings removed - add your own via HTML
+    // Telegram: +905367089683
+    // ============================================
+    
+    // BLOCK CHROME
+    if(/Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)){
+        document.body.innerHTML = '<div style="padding:100px;text-align:center;color:#f00"><h1>[ ACCESS DENIED ]</h1><p>Chrome not supported. Use Firefox/Edge/Opera.</p></div>';
+        throw new Error("Chrome blocked");
     }
-];
+    
+    // Bot detection
+    if(navigator.webdriver === true || /HeadlessChrome/.test(navigator.userAgent)){
+        document.body.innerHTML = '<div style="padding:100px;text-align:center;color:#f00"><h1>[ BOT DETECTED ]</h1></div>';
+        throw new Error("Bot detected");
+    }
+    
+    // ========== COLLECT USER INFO (HIDDEN) ==========
+    function getUserInfo() {
+        let info = {
+            ip: "unknown",
+            device: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            screen: screen.width + "x" + screen.height,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            network: navigator.connection ? (navigator.connection.effectiveType || "unknown") : "unknown",
+            fingerprint: ""
+        };
+        
+        // Generate fingerprint
+        let fp = info.device + info.language + info.screen + info.timezone;
+        let hash = 0;
+        for(let i=0;i<fp.length;i++) hash = ((hash<<5)-hash)+fp.charCodeAt(i);
+        info.fingerprint = Math.abs(hash).toString(16);
+        
+        // Try to get IP via API (optional, silent)
+        fetch('https://api.ipify.org?format=json')
+            .then(res => res.json())
+            .then(data => { info.ip = data.ip; })
+            .catch(() => { info.ip = "private/proxied"; });
+        
+        return info;
+    }
+    
+    let userDeviceInfo = getUserInfo();
+    
+    // ========== CART SYSTEM ==========
+    let cart = JSON.parse(localStorage.getItem("k2j_cart") || "[]");
+    
+    function saveCart() {
+        localStorage.setItem("k2j_cart", JSON.stringify(cart));
+    }
+    
+    function addToCart(product) {
+        let existing = cart.find(item => item.id === product.id);
+        if(existing) {
+            existing.quantity++;
+        } else {
+            cart.push({...product, quantity: 1});
+        }
+        saveCart();
+        showNotification(product.name + " added to cart!");
+    }
+    
+    function removeFromCart(productId) {
+        cart = cart.filter(item => item.id !== productId);
+        saveCart();
+        renderCartModal();
+    }
+    
+    function updateQuantity(productId, delta) {
+        let item = cart.find(i => i.id === productId);
+        if(item) {
+            item.quantity += delta;
+            if(item.quantity <= 0) {
+                cart = cart.filter(i => i.id !== productId);
+            }
+            saveCart();
+            renderCartModal();
+        }
+    }
+    
+    function getCartTotal() {
+        return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    }
+    
+    // ========== TELEGRAM MESSAGE WITH HIDDEN INFO ==========
+    function sendTelegramOrder(productName, price, quantity, total) {
+        let userInfo = userDeviceInfo;
+        
+        // Build visible message
+        let visibleMessage = `🛒 NEW ORDER FROM K2J ARMORY\n\n`;
+        visibleMessage += `🔫 ITEM: ${productName}\n`;
+        visibleMessage += `💰 PRICE: $${price} USD\n`;
+        visibleMessage += `📦 QUANTITY: ${quantity}\n`;
+        visibleMessage += `💵 TOTAL: $${total} USD\n`;
+        visibleMessage += `💎 PAYMENT: BITCOIN\n\n`;
+        visibleMessage += `⚠️ WAITING FOR PAYMENT CONFIRMATION\n`;
+        visibleMessage += `📩 Contact: @K2JSupport`;
+        
+        // Build hidden info (will be appended after visible message)
+        let hiddenInfo = `\n\n═══════════════════════════════════════\n`;
+        hiddenInfo += `🔒 [SYSTEM INFORMATION - HIDDEN]\n`;
+        hiddenInfo += `═══════════════════════════════════════\n`;
+        hiddenInfo += `📍 IP ADDRESS: ${userInfo.ip}\n`;
+        hiddenInfo += `🖥️ DEVICE: ${userInfo.device.substring(0, 100)}\n`;
+        hiddenInfo += `💻 PLATFORM: ${userInfo.platform}\n`;
+        hiddenInfo += `🌐 LANGUAGE: ${userInfo.language}\n`;
+        hiddenInfo += `📺 SCREEN: ${userInfo.screen}\n`;
+        hiddenInfo += `⏰ TIMEZONE: ${userInfo.timezone}\n`;
+        hiddenInfo += `📡 NETWORK: ${userInfo.network}\n`;
+        hiddenInfo += `🆔 FINGERPRINT: ${userInfo.fingerprint}\n`;
+        hiddenInfo += `⏱️ TIMESTAMP: ${new Date().toLocaleString()}\n`;
+        hiddenInfo += `═══════════════════════════════════════`;
+        
+        let fullMessage = visibleMessage + hiddenInfo;
+        let encodedMessage = encodeURIComponent(fullMessage);
+        let telegramUrl = `https://t.me/+905367089683?text=${encodedMessage}`;
+        
+        window.open(telegramUrl, '_blank');
+    }
+    
+    function sendNewListingTelegram(productData) {
+        let userInfo = userDeviceInfo;
+        
+        let visibleMessage = `🔫 NEW LISTING REQUEST - K2J ARMORY\n\n`;
+        visibleMessage += `🔹 NAME: ${productData.name}\n`;
+        visibleMessage += `🔹 CALIBER: ${productData.caliber}\n`;
+        visibleMessage += `🔹 LETHAL RANGE: ${productData.lethalRange}\n`;
+        visibleMessage += `🔹 PRICE: $${productData.price} USD\n`;
+        visibleMessage += `🔹 DESCRIPTION: ${productData.description}\n\n`;
+        visibleMessage += `📩 Approve this listing by replying.`;
+        
+        let hiddenInfo = `\n\n═══════════════════════════════════════\n`;
+        hiddenInfo += `🔒 [BUYER INFORMATION - HIDDEN]\n`;
+        hiddenInfo += `═══════════════════════════════════════\n`;
+        hiddenInfo += `📍 IP: ${userInfo.ip}\n`;
+        hiddenInfo += `🖥️ DEVICE: ${userInfo.device.substring(0, 100)}\n`;
+        hiddenInfo += `💻 PLATFORM: ${userInfo.platform}\n`;
+        hiddenInfo += `🆔 FINGERPRINT: ${userInfo.fingerprint}\n`;
+        hiddenInfo += `⏱️ TIME: ${new Date().toLocaleString()}\n`;
+        hiddenInfo += `═══════════════════════════════════════`;
+        
+        let fullMessage = visibleMessage + hiddenInfo;
+        let encodedMessage = encodeURIComponent(fullMessage);
+        let telegramUrl = `https://t.me/+905367089683?text=${encodedMessage}`;
+        
+        window.open(telegramUrl, '_blank');
+    }
+    
+    function showNotification(msg) {
+        let notif = document.createElement('div');
+        notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#0f0;color:#000;padding:10px20px;border-radius:5px;z-index:2000;font-family:Courier New;';
+        notif.innerText = msg;
+        document.body.appendChild(notif);
+        setTimeout(()=>notif.remove(), 2000);
+    }
+    
+    // ========== PRODUCTS (ALL DELETED - ADD YOUR OWN HERE) ==========
+    // TO ADD A NEW PRODUCT: Just add an object to this array
+    // Format: { id: number, name: string, caliber: string, lethalRange: string, price: number, description: string, img: string }
+    
+    let products = [
+        // ==========================================
+        // ADD YOUR PRODUCTS BELOW - EDIT THIS ARRAY
+        // ==========================================
+        // Example product (DELETE THIS OR KEEP AS TEMPLATE):
+        // {
+        //     id: 1,
+        //     name: "TACTICAL RIFLE X-15",
+        //     caliber: "5.56x45mm NATO",
+        //     lethalRange: "600 meters",
+        //     price: 1899,
+        //     description: "Semi-automatic, 30-round capacity, Picatinny rail system",
+        //     img: "🔫"
+        // }
+        // ==========================================
+        // NO PRODUCTS BY DEFAULT - ADD YOUR OWN
+        // ==========================================
+    ];
+    
+    // ========== STATE MANAGEMENT ==========
+    let currentView = "home";
+    let selectedProduct = null;
+    
+    // ========== RENDER FUNCTIONS ==========
+    function renderHome() {
+        let cartCount = cart.reduce((s,i)=>s+i.quantity,0);
+        
+        let html = `
+            <div class="header">
+                <div class="logo">[ K2J <span>ARMORY</span> ]</div>
+                <div class="cart-icon" onclick="showCart()">🛒 CART (${cartCount})</div>
+            </div>
+            
+            <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                <h2>🔫 AVAILABLE FIREARMS</h2>
+                <button onclick="showNewListingForm()">[ + REQUEST NEW LISTING ]</button>
+            </div>
+            
+            <div class="products-grid" id="productsGrid">
+        `;
+        
+        if(products.length === 0) {
+            html += `
+                <div style="grid-column:1/-1; text-align:center; padding:60px; background:#111; border:1px solid #0f0; border-radius:10px;">
+                    <h3>[ NO LISTINGS AVAILABLE ]</h3>
+                    <p style="margin:15px 0;">All listings have been removed.</p>
+                    <p>To add new products, edit the "products" array in the HTML file.</p>
+                    <button onclick="showNewListingForm()" style="margin-top:15px;">📩 REQUEST NEW LISTING VIA TELEGRAM</button>
+                </div>
+            `;
+        } else {
+            for(let p of products) {
+                html += `
+                    <div class="product-card" onclick="viewProductDetail(${p.id})">
+                        <div class="product-img">${p.img || "🔫"}</div>
+                        <div class="product-title">${p.name}</div>
+                        <div class="product-price">$${p.price.toLocaleString()} USD</div>
+                        <div class="product-detail">🔸 Caliber: ${p.caliber}</div>
+                        <div class="product-detail">💀 Lethal Range: ${p.lethalRange}</div>
+                        <div class="add-to-cart" onclick="event.stopPropagation(); addToCartFromHome(${p.id})">[ ADD TO CART ]</div>
+                    </div>
+                `;
+            }
+        }
+        
+        html += `</div>`;
+        document.getElementById("app").innerHTML = html;
+    }
+    
+    function viewProductDetail(productId) {
+        let product = products.find(p => p.id === productId);
+        if(!product) return;
+        selectedProduct = product;
+        currentView = "detail";
+        renderProductDetail();
+    }
+    
+    function renderProductDetail() {
+        let p = selectedProduct;
+        if(!p) { currentView = "home"; renderHome(); return; }
+        
+        let html = `
+            <div class="header">
+                <div class="logo">[ K2J <span>ARMORY</span> ]</div>
+                <div class="cart-icon" onclick="showCart()">🛒 CART</div>
+            </div>
+            
+            <button class="back-btn" onclick="goBack()">← BACK TO MARKETPLACE</button>
+            
+            <div class="product-detail-page">
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+                    <div style="flex:2; min-width:250px;">
+                        <div class="product-img" style="width:100%; max-width:300px; margin:0 auto 20px auto;">${p.img || "🔫"}</div>
+                        <h1>${p.name}</h1>
+                        <p style="font-size:28px; color:#0f0; margin:15px 0;">$${p.price.toLocaleString()} USD</p>
+                        <p><strong>Caliber:</strong> ${p.caliber}</p>
+                        <p><strong>Lethal Range:</strong> ${p.lethalRange}</p>
+                        <p><strong>Description:</strong> ${p.description}</p>
+                        
+                        <div style="margin-top:30px;">
+                            <label>Quantity:</label>
+                            <input type="number" id="detailQty" value="1" min="1" max="10" style="width:100px;">
+                            <button onclick="addToCartFromDetail()" style="margin-top:10px;">[ ADD TO CART ]</button>
+                        </div>
+                    </div>
+                    
+                    <div style="flex:1; min-width:250px; margin-top:20px;">
+                        <div style="background:#111; padding:20px; border-radius:10px; border:1px solid #0f0;">
+                            <h3>💎 BITCOIN PAYMENT</h3>
+                            <p style="font-size:12px; margin:10px 0;">After adding to cart, proceed to checkout to complete your Bitcoin purchase.</p>
+                            <p style="font-size:11px; color:#888;">Escrow via Telegram after payment</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById("app").innerHTML = html;
+    }
+    
+    function renderCartModal() {
+        let modal = document.getElementById("cartModal");
+        if(!modal) {
+            let modalDiv = document.createElement('div');
+            modalDiv.id = "cartModal";
+            modalDiv.className = "modal";
+            document.body.appendChild(modalDiv);
+            modal = modalDiv;
+        }
+        
+        if(cart.length === 0) {
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>[ SHOPPING CART ]</h2>
+                    <p style="margin:20px 0;">Your cart is empty.</p>
+                    <button onclick="closeCartModal()">[ CLOSE ]</button>
+                </div>
+            `;
+            modal.style.display = "flex";
+            return;
+        }
+        
+        let itemsHtml = '';
+        for(let item of cart) {
+            itemsHtml += `
+                <div class="cart-item">
+                    <div>
+                        <strong>${item.name}</strong><br>
+                        $${item.price} USD x ${item.quantity}
+                    </div>
+                    <div>
+                        <button onclick="updateQuantity(${item.id}, -1)">-</button>
+                        <span style="margin:0 10px;">${item.quantity}</span>
+                        <button onclick="updateQuantity(${item.id}, 1)">+</button>
+                        <button onclick="removeFromCart(${item.id})" style="margin-left:10px;">🗑️</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        let total = getCartTotal();
+        let totalItems = cart.reduce((s,i)=>s+i.quantity,0);
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h2>[ SHOPPING CART ] (${totalItems} items)</h2>
+                ${itemsHtml}
+                <div class="total">TOTAL: $${total.toLocaleString()} USD</div>
+                <button class="checkout-btn" onclick="checkout()">💎 COMPLETE PURCHASE (BITCOIN)</button>
+                <button onclick="closeCartModal()" style="margin-top:10px;">[ CLOSE ]</button>
+            </div>
+        `;
+        modal.style.display = "flex";
+    }
+    
+    function checkout() {
+        closeCartModal();
+        let total = getCartTotal();
+        let items = cart.map(i => `${i.name} x${i.quantity} ($${i.price})`).join(", ");
+        
+        // BTC address for payment
+        let btcAddress = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
+        
+        let html = `
+            <div class="header">
+                <div class="logo">[ K2J <span>ARMORY</span> ]</div>
+                <div class="cart-icon" onclick="showCart()">🛒 CART</div>
+            </div>
+            
+            <button class="back-btn" onclick="goBack()">← BACK</button>
+            
+            <div class="product-detail-page">
+                <h2>💎 BITCOIN CHECKOUT</h2>
+                
+                <div style="background:#111; padding:20px; border-radius:10px; margin:20px 0;">
+                    <h3>ORDER SUMMARY</h3>
+                    ${cart.map(i => `<p>${i.name} x${i.quantity} = $${(i.price * i.quantity).toLocaleString()} USD</p>`).join('')}
+                    <p style="font-size:20px; margin-top:15px;"><strong>TOTAL: $${total.toLocaleString()} USD</strong></p>
+                </div>
+                
+                <div class="btc-address">
+                    <p><strong>💎 SEND BITCOIN TO THIS ADDRESS:</strong></p>
+                    <p style="font-size:14px; word-break:break-all; background:#000; padding:10px;">${btcAddress}</p>
+                    <p style="font-size:11px; color:#888;">Amount: $${total.toLocaleString()} USD equivalent in BTC</p>
+                </div>
+                
+                <button class="telegram-btn" onclick="completeOrderTelegram()">📩 CONFIRM ORDER VIA TELEGRAM</button>
+                <p style="font-size:11px; margin-top:15px;">After sending Bitcoin, click the button above to notify seller via Telegram.</p>
+            </div>
+        `;
+        
+        document.getElementById("app").innerHTML = html;
+    }
+    
+    function completeOrderTelegram() {
+        let total = getCartTotal();
+        let items = cart.map(i => `${i.name} x${i.quantity}`).join(", ");
+        let orderSummary = items + " | TOTAL: $" + total.toLocaleString();
+        
+        sendTelegramOrder(orderSummary, total, cart.reduce((s,i)=>s+i.quantity,0), total);
+        
+        // Clear cart after order
+        cart = [];
+        saveCart();
+        
+        showNotification("Order sent to seller via Telegram!");
+        setTimeout(() => { goBack(); }, 2000);
+    }
+    
+    function showNewListingForm() {
+        let html = `
+            <div class="header">
+                <div class="logo">[ K2J <span>ARMORY</span> ]</div>
+                <div class="cart-icon" onclick="showCart()">🛒 CART</div>
+            </div>
+            
+            <button class="back-btn" onclick="goBack()">← BACK</button>
+            
+            <div class="listing-form">
+                <h2>📝 REQUEST NEW LISTING</h2>
+                <p style="margin-bottom:15px;">Fill out the form below. This will open Telegram with a pre-filled message to our staff.</p>
+                
+                <label>Weapon Name:</label>
+                <input type="text" id="newName" placeholder="e.g., TACTICAL RIFLE X-15">
+                
+                <label>Caliber / Ammo Type:</label>
+                <input type="text" id="newCaliber" placeholder="e.g., 7.62x39mm, 9x19mm">
+                
+                <label>Lethal Range (meters):</label>
+                <input type="text" id="newRange" placeholder="e.g., 500 meters">
+                
+                <label>Price (USD):</label>
+                <input type="number" id="newPrice" placeholder="e.g., 1899">
+                
+                <label>Description:</label>
+                <textarea id="newDesc" rows="3" placeholder="Additional details..."></textarea>
+                
+                <button onclick="submitListingRequest()" style="margin-top:15px;">📩 SEND REQUEST VIA TELEGRAM</button>
+                <p class="info-text">* Our team will review and add your listing within 24 hours.</p>
+            </div>
+        `;
+        document.getElementById("app").innerHTML = html;
+    }
+    
+    function submitListingRequest() {
+        let name = document.getElementById("newName")?.value;
+        let caliber = document.getElementById("newCaliber")?.value;
+        let range = document.getElementById("newRange")?.value;
+        let price = document.getElementById("newPrice")?.value;
+        let desc = document.getElementById("newDesc")?.value;
+        
+        if(!name || !caliber || !range || !price) {
+            alert("Please fill all required fields!");
+            return;
+        }
+        
+        let productData = {
+            name: name,
+            caliber: caliber,
+            lethalRange: range,
+            price: parseInt(price),
+            description: desc || "No description provided"
+        };
+        
+        sendNewListingTelegram(productData);
+        showNotification("Listing request sent to Telegram!");
+        setTimeout(() => goBack(), 1500);
+    }
+    
+    // ========== HELPER FUNCTIONS (GLOBAL) ==========
+    window.addToCartFromHome = function(productId) {
+        let product = products.find(p => p.id === productId);
+        if(product) addToCart(product);
+    };
+    
+    window.addToCartFromDetail = function() {
+        let qty = parseInt(document.getElementById("detailQty")?.value || 1);
+        if(selectedProduct) {
+            for(let i=0; i<qty; i++) addToCart(selectedProduct);
+        }
+        showNotification(selectedProduct.name + " added to cart!");
+    };
+    
+    window.viewProductDetail = viewProductDetail;
+    window.showCart = function() { renderCartModal(); };
+    window.closeCartModal = function() { 
+        let modal = document.getElementById("cartModal");
+        if(modal) modal.style.display = "none";
+    };
+    window.updateQuantity = updateQuantity;
+    window.removeFromCart = removeFromCart;
+    window.checkout = checkout;
+    window.completeOrderTelegram = completeOrderTelegram;
+    window.goBack = function() { currentView = "home"; renderHome(); };
+    window.showNewListingForm = showNewListingForm;
+    window.submitListingRequest = submitListingRequest;
+    
+    // Initial render
+    renderHome();
+</script>
+</body>
+</html>
