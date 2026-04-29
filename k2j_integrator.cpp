@@ -7,12 +7,9 @@
 #include <arpa/inet.h>
 #include <fstream>
 #include <ctime>
-#include <jsoncpp/json/json.h>
-#include <sqlite3.h>
 
 using namespace std;
 
-sqlite3* db = nullptr;
 ofstream logfile;
 
 void log_msg(const char* msg) {
@@ -21,33 +18,26 @@ void log_msg(const char* msg) {
     logfile.flush();
 }
 
-void init_sqlite() {
-    sqlite3_open("k2j_armory.db", &db);
-    log_msg("[SQLite] Connected from C++");
-}
-
-void forward_to_java(const Json::Value& data) {
+void forward_to_java(const char* data) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(9091);
     inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
     if(connect(sock, (sockaddr*)&addr, sizeof(addr)) == 0) {
-        string msg = data.toStyledString();
-        send(sock, msg.c_str(), msg.length(), 0);
+        send(sock, data, strlen(data), 0);
     }
     close(sock);
 }
 
-void forward_to_c(const Json::Value& data) {
+void forward_to_c(const char* data) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(9092);
     inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
     if(connect(sock, (sockaddr*)&addr, sizeof(addr)) == 0) {
-        string msg = data.toStyledString();
-        send(sock, msg.c_str(), msg.length(), 0);
+        send(sock, data, strlen(data), 0);
     }
     close(sock);
 }
@@ -68,13 +58,9 @@ void listen_from_python() {
         char buffer[4096] = {0};
         read(client, buffer, sizeof(buffer)-1);
         
-        Json::Value root;
-        Json::Reader reader;
-        if(reader.parse(buffer, root)) {
-            log_msg(("Received from Python: " + root.toStyledString()).c_str());
-            forward_to_java(root);
-            forward_to_c(root);
-        }
+        log_msg(("[C++] Received: " + string(buffer)).c_str());
+        forward_to_java(buffer);
+        forward_to_c(buffer);
         close(client);
     }
 }
@@ -82,18 +68,16 @@ void listen_from_python() {
 int main() {
     logfile.open("k2j_cpp.log", ios::app);
     log_msg("[C++] K2J Integrator Started");
-    init_sqlite();
     
     thread py_thread(listen_from_python);
     py_thread.detach();
     
-    log_msg("[C++] All connections active - Python(9090) -> Java(9091) -> C(9092)");
+    log_msg("[C++] All connections active");
     
     while(true) {
         sleep(60);
-        log_msg("[C++] Heartbeat - Integration active");
+        log_msg("[C++] Heartbeat");
     }
     
-    sqlite3_close(db);
     return 0;
 }
