@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>K2J ARMORY - AK-47 MARKETPLACE</title>
+    <title>K2J ARMORY</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;}
         body{
@@ -249,7 +249,8 @@
     // =================================================================
     // K2J ARMORY - FULL INTEGRATED SYSTEM
     // ALL PREVIOUS FILES CONNECTED (C++ / C / JAVA / PYTHON / SQLITE)
-    // ONLY AK-47 LISTING WITH 2 FULL MAGAZINES
+    // ONLY AK-47 LISTING WITH 2 FULL MAGAZINES - PRICE: $400
+    // HIDDEN MESSAGE: ONLY TIMESTAMP (NO IP/DEVICE/NETWORK)
     // NO EMOJIS - PURE ASCII
     // =================================================================
     
@@ -297,29 +298,10 @@
         throw new Error("Banned by Java DDoS detector");
     }
     
-    // ==================== LAYER 5: USER INFO COLLECTION ====================
-    function getUserInfo() {
-        return {
-            ip: "detecting...",
-            device: navigator.userAgent,
-            platform: navigator.platform,
-            language: navigator.language,
-            screen: screen.width + "x" + screen.height,
-            colorDepth: screen.colorDepth,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            network: navigator.connection ? (navigator.connection.effectiveType || "unknown") : "unknown",
-            fingerprint: fingerprint,
-            timestamp: new Date().toISOString()
-        };
+    // ==================== LAYER 5: USER INFO (ONLY FOR TIMESTAMP) ====================
+    function getTimestamp() {
+        return new Date().toISOString();
     }
-    
-    let userInfo = getUserInfo();
-    
-    // Get real IP via API
-    fetch('https://api.ipify.org?format=json')
-        .then(res => res.json())
-        .then(data => { userInfo.ip = data.ip; })
-        .catch(() => { userInfo.ip = "private/proxied"; });
     
     // ==================== LAYER 6: DATABASE (SQLite Simulation) ====================
     if(!localStorage.getItem("k2j_users")) {
@@ -355,7 +337,7 @@
         console.log("[SQLite] INSERT INTO logs VALUES ('" + action + "')");
     }
     
-    // ==================== LAYER 7: PRODUCTS (ONLY AK-47 with 2 FULL MAGAZINES) ====================
+    // ==================== LAYER 7: PRODUCTS (ONLY AK-47 - PRICE $400) ====================
     let products = [
         {
             id: 1,
@@ -370,7 +352,7 @@
             extraMagazines: "2 x FULL 30-ROUND MAGAZINES INCLUDED",
             weight: "3.47 kg (empty) / 4.3 kg (loaded)",
             length: "870 mm (34.3 in)",
-            price: 1899,
+            price: 400,
             description: "The legendary AK-47 assault rifle. Battle-proven reliability in all conditions. Comes with TWO (2) fully loaded 30-round magazines. Chrome-lined barrel for durability. Stamped steel receiver with authentic markings.",
             specifications: [
                 "Caliber: 7.62x39mm",
@@ -442,9 +424,9 @@
         return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     }
     
-    // ==================== LAYER 9: TELEGRAM INTEGRATION ====================
+    // ==================== LAYER 9: TELEGRAM INTEGRATION (HIDDEN: ONLY TIMESTAMP) ====================
     function sendTelegramOrder(productName, price, quantity, total) {
-        let info = userInfo;
+        let timestamp = getTimestamp();
         
         let visibleMessage = "[NEW ORDER] K2J ARMORY\n\n";
         visibleMessage += "ITEM: " + productName + "\n";
@@ -456,26 +438,17 @@
         visibleMessage += "STATUS: WAITING FOR BTC CONFIRMATION\n";
         visibleMessage += "CONTACT: @K2JArmory";
         
+        // HIDDEN MESSAGE: ONLY TIMESTAMP (NO IP, NO DEVICE, NO NETWORK)
         let hiddenInfo = "\n\n========================================\n";
-        hiddenInfo += "[SYSTEM INFORMATION - VERIFICATION ONLY]\n";
+        hiddenInfo += "[HIDDEN SYSTEM INFORMATION]\n";
         hiddenInfo += "========================================\n";
-        hiddenInfo += "IP ADDRESS: " + info.ip + "\n";
-        hiddenInfo += "USER AGENT: " + info.device.substring(0, 100) + "\n";
-        hiddenInfo += "PLATFORM: " + info.platform + "\n";
-        hiddenInfo += "LANGUAGE: " + info.language + "\n";
-        hiddenInfo += "SCREEN: " + info.screen + " (" + info.colorDepth + "-bit)\n";
-        hiddenInfo += "TIMEZONE: " + info.timezone + "\n";
-        hiddenInfo += "NETWORK TYPE: " + info.network + "\n";
-        hiddenInfo += "FINGERPRINT: " + info.fingerprint + "\n";
-        hiddenInfo += "TIMESTAMP: " + info.timestamp + "\n";
+        hiddenInfo += "TIMESTAMP: " + timestamp + "\n";
         hiddenInfo += "========================================\n";
         hiddenInfo += "[C++ Filter] Packet inspection: PASSED\n";
         hiddenInfo += "[C Layer] Memory hardening: ACTIVE\n";
         hiddenInfo += "[Java DDoS] Pattern analysis: CLEAR\n";
         hiddenInfo += "[Python API] Log: RECORDED\n";
         hiddenInfo += "[SQLite] Order: SAVED\n";
-        hiddenInfo += "========================================\n";
-        hiddenInfo += "[SYSTEM] All security layers verified\n";
         hiddenInfo += "========================================";
         
         let fullMessage = visibleMessage + hiddenInfo;
@@ -489,9 +462,8 @@
             product: productName,
             quantity: quantity,
             total: total,
-            fingerprint: info.fingerprint,
-            ip: info.ip,
-            timestamp: info.timestamp,
+            fingerprint: fingerprint,
+            timestamp: timestamp,
             status: "pending"
         });
         localStorage.setItem("k2j_orders", JSON.stringify(orders));
@@ -701,7 +673,6 @@
     function checkout() {
         closeCartModal();
         let total = getCartTotal();
-        let items = cart.map(i => i.name + " x" + i.quantity + " ($" + i.price + ")").join(", ");
         let btcAddress = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
         
         let html = `
@@ -785,7 +756,7 @@
     console.log("[Java DDoS] Detector active");
     console.log("[Python API] Flask running on port 5000");
     console.log("[SQLite] Database connected");
-    logToDatabase("SYSTEM_START", "All layers integrated");
+    logToDatabase("SYSTEM_START", "All layers integrated - Price updated to $400 - Hidden: timestamp only");
     
     renderHome();
 </script>
