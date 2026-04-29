@@ -5,8 +5,8 @@ import java.time.*;
 
 public class K2JDetector {
     
-    private static Set<String> bannedIPs = new HashSet<>();
     private static Map<String, Integer> requestCount = new HashMap<>();
+    private static Set<String> blockedIPs = new HashSet<>();
     private static PrintWriter logWriter;
     
     static {
@@ -21,49 +21,73 @@ public class K2JDetector {
         logWriter.flush();
     }
     
-    // Listen for C++ messages
-    static class CPPListener extends Thread {
+    static void analyzeRequest(String source, String data) {
+        int count = requestCount.getOrDefault(source, 0) + 1;
+        requestCount.put(source, count);
+        
+        if(count > 10) {
+            log("DDoS PATTERN DETECTED from " + source + " - BLOCKING");
+            blockedIPs.add(source);
+        }
+        
+        log("Request from " + source + " | Count: " + count + " | Data: " + data.substring(0, Math.min(100, data.length())));
+    }
+    
+    static class CppListener extends Thread {
         public void run() {
-            try(ServerSocket server = new ServerSocket(8082)) {
-                log("Listening for C++ on port 8082");
+            try(ServerSocket server = new ServerSocket(9091)) {
+                log("[Java] Listening for C++ on port 9091");
                 while(true) {
                     Socket s = server.accept();
                     BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
                     String msg = in.readLine();
                     
-                    log("Received: " + msg);
-                    
-                    // DDoS pattern detection
-                    if(msg != null && msg.contains("LOGIN")) {
-                        String[] parts = msg.split("\"username\":\"");
-                        if(parts.length > 1) {
-                            String username = parts[1].split("\"")[0];
-                            int count = requestCount.getOrDefault(username, 0) + 1;
-                            requestCount.put(username, count);
-                            
-                            if(count > 10) {
-                                log("DDoS PATTERN DETECTED! User: " + username);
-                                bannedIPs.add(username);
-                            }
-                        }
+                    if(msg != null) {
+                        analyzeRequest("cpp_source", msg);
+                        
+                        // Forward to Python via separate connection? Or just log
+                        log("[Java] Processing complete for: " + msg.substring(0, Math.min(50, msg.length())));
                     }
                     s.close();
                 }
             } catch(Exception e) {
-                log("Error: " + e.getMessage());
+                log("[Java] Error: " + e.getMessage());
+            }
+        }
+    }
+    
+    static class CListener extends Thread {
+        public void run() {
+            try(ServerSocket server = new ServerSocket(9093)) {
+                log("[Java] Listening for C on port 9093");
+                while(true) {
+                    Socket s = server.accept();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                    String msg = in.readLine();
+                    
+                    if(msg != null) {
+                        analyzeRequest("c_source", msg);
+                    }
+                    s.close();
+                }
+            } catch(Exception e) {
+                log("[Java] Error: " + e.getMessage());
             }
         }
     }
     
     public static void main(String[] args) {
-        log("=== K2J JAVA DDoS DETECTOR STARTED ===");
-        log("Monitoring for attack patterns...");
+        log("[Java] K2J DDoS Detector Started");
+        log("[Java] Threshold: 10 requests per source");
+        log("[Java] Listening on ports 9091 (C++) and 9093 (C)");
         
-        new CPPListener().start();
+        new CppListener().start();
+        new CListener().start();
         
         while(true) {
             try { Thread.sleep(60000); } catch(Exception e) {}
-            log("Heartbeat - Active bans: " + bannedIPs.size());
+            log("[Java] Heartbeat - Active blocks: " + blockedIPs.size());
+            log("[Java] Active request counts: " + requestCount.size());
         }
     }
 }
