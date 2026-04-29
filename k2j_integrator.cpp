@@ -1,6 +1,3 @@
-// K2J C++ INTEGRATOR - Connects Python, C, Java together
-// Compile: g++ -o k2j_integrator k2j_integrator.cpp -lpthread
-
 #include <iostream>
 #include <thread>
 #include <cstring>
@@ -10,99 +7,93 @@
 #include <arpa/inet.h>
 #include <fstream>
 #include <ctime>
-#include <jsoncpp/json/json.h>  // sudo apt-get install libjsoncpp-dev
+#include <jsoncpp/json/json.h>
+#include <sqlite3.h>
 
 using namespace std;
 
-int c_socket = -1;
-int java_socket = -1;
+sqlite3* db = nullptr;
 ofstream logfile;
 
-void log_to_file(const char* msg) {
+void log_msg(const char* msg) {
     time_t now = time(NULL);
     logfile << ctime(&now) << " [C++] " << msg << endl;
     logfile.flush();
 }
 
-// Listen for Python messages
-void python_listener() {
+void init_sqlite() {
+    sqlite3_open("k2j_armory.db", &db);
+    log_msg("[SQLite] Connected from C++");
+}
+
+void forward_to_java(const Json::Value& data) {
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(9091);
+    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
+    if(connect(sock, (sockaddr*)&addr, sizeof(addr)) == 0) {
+        string msg = data.toStyledString();
+        send(sock, msg.c_str(), msg.length(), 0);
+    }
+    close(sock);
+}
+
+void forward_to_c(const Json::Value& data) {
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(9092);
+    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
+    if(connect(sock, (sockaddr*)&addr, sizeof(addr)) == 0) {
+        string msg = data.toStyledString();
+        send(sock, msg.c_str(), msg.length(), 0);
+    }
+    close(sock);
+}
+
+void listen_from_python() {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(8081);
+    addr.sin_port = htons(9090);
     addr.sin_addr.s_addr = INADDR_ANY;
     
     bind(server_fd, (sockaddr*)&addr, sizeof(addr));
     listen(server_fd, 10);
-    log_to_file("Listening for Python on port 8081");
+    log_msg("[C++] Listening for Python on port 9090");
     
     while(true) {
         int client = accept(server_fd, nullptr, nullptr);
-        char buffer[1024] = {0};
+        char buffer[4096] = {0};
         read(client, buffer, sizeof(buffer)-1);
         
-        log_to_file(buffer);
-        
-        // Forward to C module
-        if(c_socket > 0) {
-            send(c_socket, buffer, strlen(buffer), 0);
+        Json::Value root;
+        Json::Reader reader;
+        if(reader.parse(buffer, root)) {
+            log_msg(("Received from Python: " + root.toStyledString()).c_str());
+            forward_to_java(root);
+            forward_to_c(root);
         }
-        
-        // Forward to Java
-        if(java_socket > 0) {
-            send(java_socket, buffer, strlen(buffer), 0);
-        }
-        
         close(client);
     }
 }
 
-// Connect to C module
-void connect_to_c() {
-    c_socket = socket(AF_INET, SOCK_STREAM, 0);
-    sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(8083);
-    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
-    
-    while(connect(c_socket, (sockaddr*)&addr, sizeof(addr)) < 0) {
-        log_to_file("Waiting for C module...");
-        sleep(2);
-    }
-    log_to_file("Connected to C module on port 8083");
-}
-
-// Connect to Java
-void connect_to_java() {
-    java_socket = socket(AF_INET, SOCK_STREAM, 0);
-    sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(8082);
-    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
-    
-    while(connect(java_socket, (sockaddr*)&addr, sizeof(addr)) < 0) {
-        log_to_file("Waiting for Java module...");
-        sleep(2);
-    }
-    log_to_file("Connected to Java on port 8082");
-}
-
 int main() {
     logfile.open("k2j_cpp.log", ios::app);
-    log_to_file("=== K2J C++ INTEGRATOR STARTED ===");
+    log_msg("[C++] K2J Integrator Started");
+    init_sqlite();
     
-    connect_to_c();
-    connect_to_java();
-    
-    thread py_thread(python_listener);
+    thread py_thread(listen_from_python);
     py_thread.detach();
     
-    log_to_file("All connections established. System running.");
+    log_msg("[C++] All connections active - Python(9090) -> Java(9091) -> C(9092)");
     
     while(true) {
         sleep(60);
-        log_to_file("Heartbeat - Integration active");
+        log_msg("[C++] Heartbeat - Integration active");
     }
     
+    sqlite3_close(db);
     return 0;
 }
