@@ -6,8 +6,10 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <time.h>
+#include <signal.h>
 
-#define PORT 8083
+#define PORT 9092
+#define MAX_BUFFER 4096
 
 FILE* logfile;
 
@@ -17,8 +19,18 @@ void log_msg(const char* msg) {
     fflush(logfile);
 }
 
-// Listen for C++ messages
-void* listen_to_cpp(void* arg) {
+void send_to_java(const char* data) {
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(9091);
+    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
+    connect(sock, (struct sockaddr*)&addr, sizeof(addr));
+    send(sock, data, strlen(data), 0);
+    close(sock);
+}
+
+void* listen_from_cpp(void* arg) {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
@@ -27,13 +39,21 @@ void* listen_to_cpp(void* arg) {
     
     bind(server_fd, (struct sockaddr*)&addr, sizeof(addr));
     listen(server_fd, 10);
-    log_msg("Listening for C++ on port 8083");
+    log_msg("[C] Listening for C++ on port 9092");
     
     while(1) {
         int client = accept(server_fd, NULL, NULL);
-        char buffer[512] = {0};
+        char buffer[MAX_BUFFER] = {0};
         read(client, buffer, sizeof(buffer)-1);
-        log_msg(buffer);
+        log_msg(("[C] Received: " + string(buffer)).c_str());
+        
+        // Packet inspection simulation
+        if(strstr(buffer, "malicious") != NULL) {
+            log_msg("[C] MALICIOUS PACKET DETECTED - DROPPED");
+        } else {
+            log_msg("[C] Packet inspection PASSED");
+            send_to_java(buffer);
+        }
         close(client);
     }
     return NULL;
@@ -41,16 +61,15 @@ void* listen_to_cpp(void* arg) {
 
 int main() {
     logfile = fopen("k2j_c.log", "a");
-    log_msg("=== K2J C FILTER STARTED ===");
+    log_msg("[C] K2J C Filter Started");
+    log_msg("[C] Packet inspection active on port 9092");
     
     pthread_t thread;
-    pthread_create(&thread, NULL, listen_to_cpp, NULL);
-    
-    log_msg("Packet filter active - Monitoring all traffic");
+    pthread_create(&thread, NULL, listen_from_cpp, NULL);
     
     while(1) {
         sleep(30);
-        log_msg("Heartbeat - Filter active");
+        log_msg("[C] Heartbeat - Filter active");
     }
     
     fclose(logfile);
